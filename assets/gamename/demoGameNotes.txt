@@ -1,0 +1,10 @@
+The files in this folder are for the small demo game provided with sdcAdventure.
+
+This demo game serves a few purposes:
+
+* To allow you to try out sdcAdventure with the minimum of effort.
+* To allow me to test new code as I write it.
+
+The demo game is not set up by default. If you attempt to run sdcAdventure immediately after loading the files, you will get a database error. To set up the demo game, go to the designer program, and click the "Setup Demo" button.
+
+Some of the characters, concepts and graphics in this demo game are derived from work by Mark Stanley in his Freefall comic strip (http://freefall.purrsia.com). (I originally intended to just write a game based on the comic (an early version was releaed as a Windows exe and linked by Mark on the Freefall site), but I ended up writing a game writing platform instead)
