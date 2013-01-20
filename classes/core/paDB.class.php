@@ -35,9 +35,6 @@ class paDB {
     private function dsn() {
         $dsn = paConfig::load('dsn');
         $dsn = str_replace('@gamedir',ADVENGAME_ROOT.'/assets/'.paConfig::getGame(), $dsn); 
-//print $dsn;
         return $dsn;
-        //$dbdir = dirname(dirname(__DIR__)).'/sqlitedb';
-        //return 'sqlite:'.$dbdir.'/advengame.sq3';
     }
 }
