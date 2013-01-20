@@ -33,7 +33,11 @@ class paDB {
      * @return string The PDO DSN string for the database.
      */
     private function dsn() {
-        $dbdir = dirname(dirname(__DIR__)).'/sqlitedb';
-        return 'sqlite:'.$dbdir.'/advengame.sq3';
+        $dsn = paConfig::load('dsn');
+        $dsn = str_replace('@gamedir',ADVENGAME_ROOT.'/assets/'.paConfig::getGame(), $dsn); 
+//print $dsn;
+        return $dsn;
+        //$dbdir = dirname(dirname(__DIR__)).'/sqlitedb';
+        //return 'sqlite:'.$dbdir.'/advengame.sq3';
     }
 }
