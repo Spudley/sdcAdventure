@@ -5,7 +5,13 @@ A PHP/Javascript-based platform for Sierra-style point+click adventure games
 
 Copyright, Simon Champion, 2013.
 
-Version 0.1.0: Published January 20th 2013.
+Version 0.1.1: March 3rd 2013.
+
+
+Release notes:
+
+0.1.0: 2013-01-20. Initial code dump to github. Basic game demo works with a couple of scenes and a conversation. Game designer is able to modify the demo game.
+0.1.1: 2013-03-03. Lots more work done to game designer. Features added include ability to draw walkable areas and exits onto scenes. Event system is current work-in-progress.
 
 
 Work In Progress

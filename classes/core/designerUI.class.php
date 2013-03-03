@@ -12,10 +12,11 @@ class designerUI {
         $buttons = array(
             'scene'     =>array('caption'=>'Scenes',    'type'=>'desform'),
             'char'      =>array('caption'=>'Characters','type'=>'desform'),
-            'item'      =>array('caption'=>'Items',     'type'=>'desform','spacer'=>true),
+            'item'      =>array('caption'=>'Items',     'type'=>'desform'),
+            'event'     =>array('caption'=>'Events',    'type'=>'desform','spacer'=>true),
             'help'      =>array('caption'=>'Help!',     'type'=>'info'),
             'about'     =>array('caption'=>'About',     'type'=>'info','spacer'=>true),
-            'setup_db'  =>array('caption'=>'Setup Demo',  'type'=>'desaction'),
+            'setup_db'  =>array('caption'=>'Setup Demo','type'=>'desaction'),
         );
         $html=array();
         foreach($buttons as $button=>$bdata) {

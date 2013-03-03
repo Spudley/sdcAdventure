@@ -100,6 +100,7 @@ eof;
     }
 
     private function doInserts($pdo) {
+        //these are the inserts for the basic demo game.
         $queries = array(
             "insert into `{$this->args['prefix']}_scenes` (`title`,`backdrop`, `walkable`) values ('Outside the Savage Chicken','outside_chicken.png',  '0,256, 78,256, 183,288, 640,279, 640,480, 0,480')",
             "insert into `{$this->args['prefix']}_scenes` (`title`,`backdrop`, `walkable`) values ('Outside the spaceport',     'outside_spaceport.png','0,340, 347,313, 528,204, 569,211, 508,352, 640,435, 640,480, 0,480')",

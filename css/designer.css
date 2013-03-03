@@ -125,3 +125,7 @@ body {
 .contextMenu li.separator {
     border-top: solid 1px #CCC;
 }
+
+.event_actionSubjects {
+    display:inline-block;
+}

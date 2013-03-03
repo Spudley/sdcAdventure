@@ -7,6 +7,7 @@ var gd = {
     scenes: {},
     chars : {},
     items : {},
+    events: {},
     initialise : function() {
         $('button[data-type=desform]').click(function() {
             gd.load($(this).data('action'));
@@ -84,10 +85,59 @@ var gd = {
             var obj = gd[type+'s'][id];
             if(obj) {obj.data[field]=$(this).val();}
         });
+        //change event for action type field, to switch in the appropriate action type.
+        $(document).on('change','.gdui_input_event_actionType', function() {
+            var actionType = $(this);
+            var actionTypeSubject = $(this).find('option:selected').data('dropbox');
+            actionType.siblings('.event_actionSubjects').find('select').each(function() {
+                var sel=$(this);
+                var showOrHide = actionTypeSubject===sel.data('type');
+                sel.toggle(showOrHide);
+                if(showOrHide && sel.find('option').length==0) {
+                    gd.load(actionTypeSubject, function(data) {
+                        data = data.results;
+                        var options = "<option value='0'>-- please select --</option>";
+                        for(i in data) {if (data.hasOwnProperty(i)) {
+                            options += "<option value='"+data[i].id+"'>"+(data[i].title?data[i].title:data[i].name)+"</option>";
+                        }}
+                        sel.append(options);
+                    });
+                }
+            });
+            gd.initSubOpt(actionType, 0);
+        });
+        //change event for specific action types to display any sub-types.
+        $(document).on('change','.event_actionSubjects select', function() {
+            gd.initSubOpt($('.gdui_input_event_actionType'), $(this).val());
+        });
         gd.initClicks();
     },
+    initSubOpt : function(actionType, suboptVal) {
+        //@WIP.
+        //populate sub-option drop-lists in events form. (@todo: this function should probably be somewhere else, but for once lets make it work first, then think about structure)
+        //@wip note: trying to get sub-opts to work. actionType seems to contain the main action type but we want the selected character so we can pass it to the load function as actionOptVal.
+        var actionOpt = $(actionType).find('option:selected');
+        var actionSubOpt = actionOpt.data('subopt');
+        actionType.parent().siblings('.event_actionSubAction').find('div').each(function() {
+            var sel=$(this).find('select');
+            var showOrHide = actionSubOpt===sel.data('type');
+            $(this).toggle(showOrHide);
+            if(showOrHide && sel.data('charID')!=suboptVal) {
+                gd.load(actionSubOpt+':'+suboptVal, function(data) {
+                    sel.data('charID',suboptVal);
+                    data = data.results;
+                    var options = "<option value='0'>-- please select --</option>";
+                    for(var i in data) {if (data.hasOwnProperty(i)) {
+                        var opttext = (data[i].title ? data[i].title : (data[i].name ? data[i].name : data[i].text));
+                        options += "<option value='"+data[i].id+"'>"+opttext+"</option>";
+                    }}
+                    sel.html(options);
+                });
+            }
+        });
+    },
     initClicks : function() {
-        //click event for the scene/character/item list boxes
+        //click event for the scene/character/item/event list boxes
         $(document).on('click', '.gd_datalistitem', function(e){
             var listitem=$(this);
             var type = listitem.data('type');
@@ -101,16 +151,22 @@ var gd = {
             });
         });
     },
-    load : function(type) {
-        var tmod;
-        switch(type) {
+    load : function(type, callback) {
+        var tmod, subOpt;
+        switch(type.split(':')[0]) {
             case 'scene':tmod='Scenes';break;
             case 'char' :tmod='Characters';break;
-            case 'item' :tmod='Item';break;
+            case 'item' :tmod='Items';break;
+            case 'event':tmod='Events';break;
+            case 'talk' :tmod='Talk'; subOpt = type.split(':')[1]; break;
             default :alert('Unknown data type. ['+type+']');return;
         }
-        $.getJSON(pa_args.game_root+'/ajax.php',{'module':'load'+tmod, 'all':true},function(data) {
-            gdui.list.load(type,data);
+        $.getJSON(pa_args.game_root+'/ajax.php',{'module':'load'+tmod, 'all':true, 'charID':subOpt},function(data) {
+            if(callback) {
+                callback(data);
+            } else {
+                gdui.list.load(type,data);
+            }
         });
     },
     createObj : function(type,data) {
@@ -119,6 +175,7 @@ var gd = {
             case 'scene':tclone=gdScene;break;
             case 'char' :tclone=gdCharacter;break;
             case 'item' :tclone=gdItem;break;
+            case 'event':tclone=gdEvent;break;
             default :alert('Unknown data type. ['+type+']');return null;
         }
         obj = $.extend({},tclone);
@@ -154,8 +211,9 @@ var gd = {
             }
         });
     },
-    dropBox : function(type,fieldID,defaultValue) {
-        var output = "<select id='"+fieldID+"'>";
+    dropBox : function(type,fieldID,defaultValue,styles) {
+        if(!styles) {styles='';}    //protect against undefined
+        var output = "<select id='"+fieldID+"' "+styles+">";
         var field, selected, i;
         for(i in gd[type+'s']) {
             field = gd[type+'s'][i].data[gd[type+'s'][i].dropBoxField()];
@@ -351,6 +409,52 @@ var gdItem = {
     }
 }
 
+var gdEvent = {
+    type : 'event',
+    uiWin : null,
+    data : {},
+    baseData : {id:0,title:'*New Event*',location:0},
+    tableFields : {
+        'id' : 'ID', 'title' : 'Name'
+    },
+    dataFields : [
+        {caption: 'Name',field:'title',type:'text'},
+        {caption: 'When the player...',field:'actionType',type:'actionType'}
+    ],
+    dropBoxField : function() {return 'title';},
+    create : function(data) {
+        this.data = $.extend({},this.baseData,data);
+        gdui.list.addTableRow('event', this.data, this.tableFields);
+    },
+    winTitle : function() {
+        if(this.data.id) {
+            return 'Event ' +this.data.id + ': '+this.data.title;
+        }
+        return 'New Event';
+    },
+    tabID : function() {
+        return 'gd_detswin_event_'+(this.data.id);
+    },
+    winTabs : function() {
+        var tab_id = this.tabID();
+        var tabs = {
+            'Data' : gdui.details.inputFields(this,'dataFields')
+        };
+        var output_tabs = '', output_divs = '';
+        for(var i in tabs) {
+            output_tabs += '<li><a href="#'+tab_id+'_tab'+i+'">'+i+'</a></li>';
+            output_divs += '<div id="'+tab_id+'_tab'+i+'">'+tabs[i]+'</div>';
+        }
+        return '<div class="gd_tabset gd_eventdets" id="'+tab_id+'"><ul>'+output_tabs+'</ul>'+output_divs+'</div>';
+    },
+    postLoad : function() {
+        
+    },
+    save : function() {
+        alert('saving event '+this.data.id);
+    }
+}
+
 var gdui = {
     list : {
         load : function(type,data) {
@@ -376,6 +480,7 @@ var gdui = {
                 case 'scene':win_title='Scenes';tobj=gdScene;break;
                 case 'char' :win_title='Characters';tobj=gdCharacter;break;
                 case 'item' :win_title='Items';tobj=gdItem;break;
+                case 'event':win_title='Events';tobj=gdEvent;break;
                 default :alert('Unknown data type. ['+type+']');return;
             }
             var win_id = 'gd_listwin_' + type;
@@ -438,10 +543,11 @@ var gdui = {
                 case 'scene':win_title='Scene';break;
                 case 'char' :win_title='Character';break;
                 case 'item' :win_title='Item';break;
+                case 'event':win_title='Event';break;
                 default :alert('Unknown data type. ['+type+']');return;
             }
             if(confirm('Are you sure you want to delete ' + win_title + ' #' + id)) {
-                //@todo: prevent delete if linked with other locations/character/items, or warn and unlink everything.
+                //@todo: prevent delete if linked with other locations/characters/items/events, or warn and unlink everything.
                 alert('bang!'); //@todo: delete from DB, JS data and HTML table. Close details window if open.
             }
         }
@@ -527,6 +633,37 @@ var gdui = {
             shape : function(obj,field) {
                 var img = this.imgurl(obj,'bg');
                 return '<div id="draw_'+this.fldid(obj,{field:field.field})+'" class="gd_drawshape" data-img="'+img+'"></div>';
+            },
+            actionType : function(obj,field) {
+                var opts, i, output, selected, mainsel;
+                opts = [
+                    {title:'-- please select --', dropbox:'', subOpt:''},
+                    {title:'picks up object', dropbox:'item', subOpt:''},
+                    {title:'uses object', dropbox:'item', subOpt:''},
+                    {title:'talks to character',dropbox:'char', subOpt:'talk'},
+                    {title:'goes to scene',dropbox:'scene', subOpt:''}
+                ];
+                mainsel=this.fldid(obj,field);
+                output = '<div>';
+                output += this.caption(obj,field)+'<select class="gdui_input gdui_input_'+obj.type+'_'+field.field+'" id="'+mainsel+'">';
+                for(i in opts) {
+                    selected = (obj.data[field.field]==opts[i]?'selected="selected"':'');
+                    output += '<option '+selected+' value="'+i+'" data-dropbox="'+opts[i].dropbox+'" data-subopt="'+opts[i].subOpt+'">'+opts[i].title+'</option>';
+                }
+                output += "</select> ";
+
+                output += "<div class='event_actionSubjects'>";
+                output += gd.dropBox('scene', this.fldid(obj,{field:'appliesToSceneID'}), obj.data.appliesToSceneID, 'data-type="scene" data-mainsel="'+mainsel+'" style="display:none"');
+                output += gd.dropBox('char',  this.fldid(obj,{field:'appliesToCharID'}),  obj.data.appliesToCharID,  'data-type="char"  data-mainsel="'+mainsel+'" style="display:none"');
+                output += gd.dropBox('item',  this.fldid(obj,{field:'appliesToItemID'}),  obj.data.appliesToItemID,  'data-type="item"  data-mainsel="'+mainsel+'" style="display:none"');
+                output += "</div>";
+                output += "</div>";
+
+                output += "<div class='event_actionSubAction'>";
+                output += "<div id='"+this.fldid(obj,{field:'subOpttalk'})+"' data-typetalk' style='display:none;'>...and says <select id='"+this.fldid(obj,{field:'selSubOpttalk'})+"' data-type='talk'></select></div>";
+                output += "</div>";
+
+                return output;
             }
         }
     }
@@ -573,22 +710,6 @@ var gd_poly = {
             }
             this.setupNewShape(points);
         }
-        if(this.type === 'Exits') {
-            $(self.image.node).contextMenu({
-                menu:     'gd_contextmenu_image',
-                onSelect: function(menuitem) {
-                    switch(menuitem.attr('name')) {
-                        case 'addShape' :
-                            //place a new shape somewhere near the center of the area (randomised a bit so that multiple shapes don't just sit on top of each other).
-                            var x = (self.W/2) + Math.floor(Math.random()*100)-50,
-                                y = (self.H/2) + Math.floor(Math.random()*100)-50;
-                            self.addShape(x,y);
-                            break;
-                    }
-                    gd.initClicks();    //contextmenu unbinds all the click events, so we need to rebind them. grrr.
-                }
-            });
-        }
     },
     setupNewShape : function(points) {
         var poly = this.gr.path();
@@ -608,9 +729,26 @@ var gd_poly = {
         }
     },
     setImage : function(image) {
-        if(this.image) {this.image.remove();}
-        this.image = this.gr.image(image,0,0,this.W,this.H);
-        this.image.toBack();
+        var self=this;
+        if(self.image) {self.image.remove();}
+        self.image = self.gr.image(image,0,0,self.W,self.H);
+        self.image.toBack();
+        if(self.type === 'Exits') {
+            $(self.image.node).contextMenu({
+                menu:     'gd_contextmenu_image',
+                onSelect: function(menuitem) {
+                    switch(menuitem.attr('name')) {
+                        case 'addShape' :
+                            //place a new shape somewhere near the center of the area (randomised a bit so that multiple shapes don't just sit on top of each other).
+                            var x = (self.W/2) + Math.floor(Math.random()*100)-50,
+                                y = (self.H/2) + Math.floor(Math.random()*100)-50;
+                            self.addShape(x,y);
+                            break;
+                    }
+                    gd.initClicks();    //contextmenu unbinds all the click events, so we need to rebind them. grrr.
+                }
+            });
+        }
     },
     setupWalkable : function(box) {
         this.polyBorder = '#990000';
